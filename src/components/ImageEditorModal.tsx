@@ -72,7 +72,7 @@ export default function ImageEditorModal({ isOpen, fileUrl, onClose, onSave }: I
             initialAspectRatio={NaN}
             guides={true}
             ref={cropperRef}
-            viewMode={1}
+            viewMode={2}
             dragMode="crop"
             background={false}
             responsive={true}
