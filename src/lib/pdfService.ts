@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PageSizes } from 'pdf-lib';
 
 /**
  * Converts an array of image files to a single PDF document.
@@ -20,12 +20,19 @@ export async function imagesToPdf(imageFiles: File[]): Promise<Uint8Array> {
     }
 
     const { width, height } = imageObj;
-    const page = pdfDoc.addPage([width, height]);
+    const a4 = PageSizes.A4;
+    const page = pdfDoc.addPage(a4);
+    
+    // Calculate scaling to explicitly fit the image within native A4 bounds while preventing aspect ratio distortion
+    const scale = Math.min(a4[0] / width, a4[1] / height);
+    const scaledWidth = width * scale;
+    const scaledHeight = height * scale;
+
     page.drawImage(imageObj, {
-      x: 0,
-      y: 0,
-      width,
-      height,
+      x: (a4[0] - scaledWidth) / 2,
+      y: (a4[1] - scaledHeight) / 2,
+      width: scaledWidth,
+      height: scaledHeight,
     });
   }
 
@@ -67,7 +74,7 @@ export async function generateCoverPage(options: {
   submissionDate: string;
 }): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage();
+  const page = pdfDoc.addPage(PageSizes.A4);
   const { width, height } = page.getSize();
   
   // Use professional Times New Roman as requested
