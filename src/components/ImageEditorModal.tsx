@@ -77,8 +77,9 @@ export default function ImageEditorModal({ isOpen, fileUrl, onClose, onSave }: I
             background={false}
             responsive={true}
             checkOrientation={false}
-            autoCrop={false}
+            autoCrop={true}
             autoCropArea={1}
+            ready={handleAutoCrop}
           />
         </div>
 
