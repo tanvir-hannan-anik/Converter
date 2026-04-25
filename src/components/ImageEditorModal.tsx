@@ -1,9 +1,9 @@
 "use client";
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import Cropper, { ReactCropperElement } from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import { getAutoCropRect } from '@/lib/imageProcessing';
-import { Crop, Check, X } from 'lucide-react';
+import { Crop, Check, X, RotateCw, RotateCcw } from 'lucide-react';
 
 interface ImageEditorModalProps {
   isOpen: boolean;
@@ -19,18 +19,23 @@ export default function ImageEditorModal({ isOpen, fileUrl, onClose, onSave }: I
 
   const handleAutoCrop = () => {
     const cropper = cropperRef.current?.cropper;
-    if (!cropper) return;
-    
-    // Snag the underlying HTML image natively from cropper's DOM injection
-    const imageElement = document.querySelector('.cropper-hidden') as HTMLImageElement;
-    if (imageElement) {
-        const cropRect = getAutoCropRect(imageElement);
-        if (cropRect) {
-           cropper.setData(cropRect);
-        } else {
-           alert("Could not detect strong structural edges for auto-cropping. The background and foreground might not have enough structural contrast!");
-        }
+    // cropperRef.current is the original HTMLImageElement that Cropper was initialized on
+    if (!cropper || !cropperRef.current) return;
+
+    const cropRect = getAutoCropRect(cropperRef.current);
+    if (cropRect) {
+      cropper.setData(cropRect);
+    } else {
+      alert("Could not detect document edges. The background may lack sufficient contrast.");
     }
+  };
+
+  const handleRotateLeft = () => {
+    cropperRef.current?.cropper?.rotate(-90);
+  };
+
+  const handleRotateRight = () => {
+    cropperRef.current?.cropper?.rotate(90);
   };
 
   const handleSave = () => {
@@ -64,24 +69,42 @@ export default function ImageEditorModal({ isOpen, fileUrl, onClose, onSave }: I
             initialAspectRatio={NaN}
             guides={true}
             ref={cropperRef}
-            viewMode={1}
+            viewMode={2}
             dragMode="crop"
             background={false}
             responsive={true}
             checkOrientation={false}
-            autoCrop={false}
+            autoCrop={true}
             autoCropArea={1}
+            ready={handleAutoCrop}
           />
         </div>
 
         <div className="p-4 border-t bg-gray-50 flex items-center justify-between flex-wrap gap-4">
-          <button 
-            onClick={handleAutoCrop}
-            className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold rounded-lg transition-colors shadow-sm"
-          >
-            <Crop size={18} /> 
-            <span>Magic Auto-Crop</span>
-          </button>
+          <div className="flex gap-2 items-center">
+            <button 
+              onClick={handleAutoCrop}
+              className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold rounded-lg transition-colors shadow-sm"
+              title="Auto Detect Document Bounds"
+            >
+              <Crop size={18} /> 
+              <span className="hidden sm:inline">Magic Auto-Crop</span>
+            </button>
+            <button
+              onClick={handleRotateLeft}
+              className="p-2 border border-blue-200 bg-white text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shadow-sm"
+              title="Rotate Left"
+            >
+              <RotateCcw size={20} />
+            </button>
+            <button
+              onClick={handleRotateRight}
+              className="p-2 border border-blue-200 bg-white text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shadow-sm"
+              title="Rotate Right"
+            >
+              <RotateCw size={20} />
+            </button>
+          </div>
           
           <div className="flex gap-3">
              <button onClick={onClose} className="px-5 py-2 font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors border border-gray-300 bg-white shadow-sm">

@@ -1,22 +1,25 @@
 "use client";
 import React, { useState } from 'react';
 import UploadZone from '@/components/UploadZone';
+import PageHeader from '@/components/PageHeader';
 import { pdfToDocx } from '@/lib/docxService';
-import { FileText } from 'lucide-react';
+import { FileText, X, ArrowDownToLine, Info } from 'lucide-react';
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
 
 export default function PdfToDocPage() {
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleDrop = (acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setSourceFile(acceptedFiles[0]);
-    }
+  const handleDrop = (files: File[]) => {
+    if (files.length > 0) setSourceFile(files[0]);
   };
 
-  const handleExtractAndDownload = async () => {
+  const handleConvert = async () => {
     if (!sourceFile) return;
-
     try {
       setIsProcessing(true);
       const docxBlob = await pdfToDocx(sourceFile);
@@ -24,65 +27,95 @@ export default function PdfToDocPage() {
       const url = URL.createObjectURL(docxBlob);
       const a = document.createElement('a');
       a.href = url;
-      // Strip out `.pdf` from original filename and append `.docx` safely
-      const rawName = sourceFile.name.toLowerCase().endsWith('.pdf') 
-        ? sourceFile.name.slice(0, -4) 
+      const base = sourceFile.name.toLowerCase().endsWith('.pdf')
+        ? sourceFile.name.slice(0, -4)
         : sourceFile.name;
-      a.download = `${rawName}_extracted.docx`;
-      
+      a.download = `${base}_extracted.docx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to convert PDF into a Word document. The file might contain complex unreadable encryption or formatting failures.");
+    } catch (err) {
+      console.error(err);
+      alert("Conversion failed. The file may contain encrypted or non-readable content.");
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in transition duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Convert PDF to Word</h1>
-        <p className="text-gray-500">Extract all readable text from your PDF file seamlessly back into a Microsoft Word `.docx` document locally.</p>
-      </div>
+    <div className="max-w-2xl mx-auto space-y-7 page-enter">
+
+      <PageHeader
+        icon={<FileText />}
+        title="PDF to Word"
+        description="Extract readable text from a PDF and download it as a .docx file."
+        color="amber"
+      />
 
       {!sourceFile ? (
-        <UploadZone 
-          onDropFiles={handleDrop} 
-          accept={{ 'application/pdf': ['.pdf'] }} 
-          label="Drag & drop a single PDF file here, or click to browse"
+        <UploadZone
+          onDropFiles={handleDrop}
+          accept={{ 'application/pdf': ['.pdf'] }}
+          label="Drop a PDF file here, or click to browse"
+          maxFiles={1}
         />
       ) : (
-        <div className="bg-white p-8 rounded-xl border border-blue-100 shadow-sm space-y-6 flex flex-col items-center text-center">
-          <div className="h-16 w-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shadow-inner">
-            <FileText size={32} />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">{sourceFile.name}</h2>
-            <p className="text-sm text-gray-500 mt-1">{(sourceFile.size / 1024 / 1024).toFixed(2)} MB</p>
-          </div>
+        <div className="space-y-4">
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm pt-4">
-             <button 
+          {/* File card */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center shrink-0 border border-red-100">
+              <FileText size={24} className="text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-slate-800 truncate" title={sourceFile.name}>
+                {sourceFile.name}
+              </p>
+              <p className="text-sm text-slate-400 mt-0.5">{formatSize(sourceFile.size)}</p>
+            </div>
+            <button
               onClick={() => setSourceFile(null)}
               disabled={isProcessing}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors focus:outline-none"
+              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+              title="Remove"
             >
-              Cancel
-            </button>
-            <button 
-              onClick={handleExtractAndDownload}
-              disabled={isProcessing}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {isProcessing ? "Extracting..." : "Download .docx"}
+              <X size={18} />
             </button>
           </div>
+
+          {/* Info note */}
+          <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3.5 text-sm text-amber-700">
+            <Info size={15} className="mt-0.5 shrink-0 text-amber-500" />
+            <span>
+              Only selectable text is extracted. Scanned pages or image-based PDFs may produce little or no output.
+            </span>
+          </div>
+
+          {/* Button */}
+          <button
+            onClick={handleConvert}
+            disabled={isProcessing}
+            className="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-semibold py-3.5 rounded-xl shadow-sm transition-all flex justify-center items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+          >
+            {isProcessing ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Extracting text…
+              </>
+            ) : (
+              <>
+                <ArrowDownToLine size={18} />
+                Convert & Download .docx
+              </>
+            )}
+          </button>
         </div>
       )}
+
     </div>
   );
 }
