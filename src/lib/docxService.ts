@@ -1,5 +1,5 @@
 export async function pdfToDocx(file: File): Promise<Blob> {
-  const SECRET = "1chCpK7rpKp3VJed7HxkFtzR7bbRRuZe";
+  
 
   const formData = new FormData();
   formData.append('File', file);
